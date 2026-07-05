@@ -1,0 +1,226 @@
+<script>
+/**
+ * 3D Printing Speed & Flow Calculator
+ * A deterministic physics tool for FDM slicer optimization.
+ * Formula: Volumetric Flow (mm³/s) = Speed (mm/s) * Width (mm) * Height (mm)
+ * Kinematics: Peak Speed = sqrt(Acceleration * Distance)
+ */
+
+const { state, ui } = WH.createApp({
+    title: "3D Printing Speed & Flow Calculator",
+    params: {
+        hotendFlow: {
+            value: 20,
+            min: 5,
+            max: 60,
+            step: 0.5,
+            label: "Hotend Flow",
+            desc: "Max volumetric capacity of the hotend in mm³/s"
+        },
+        layerHeight: {
+            value: 0.2,
+            min: 0.08,
+            max: 0.4,
+            step: 0.01,
+            label: "Layer Height",
+            desc: "Vertical height of a single printed layer in mm"
+        },
+        lineWidth: {
+            value: 0.42,
+            min: 0.3,
+            max: 0.8,
+            step: 0.01,
+            label: "Line Width",
+            desc: "Extrusion width (usually nozzle diameter * 1.1) in mm"
+        },
+        targetSpeed: {
+            value: 250,
+            min: 50,
+            max: 600,
+            step: 5,
+            label: "Target Speed",
+            desc: "Requested print speed in mm/s"
+        },
+        accel: {
+            value: 11000,
+            min: 1000,
+            max: 20000,
+            step: 500,
+            label: "Acceleration",
+            desc: "Toolhead acceleration in mm/s²"
+        },
+        segmentDist: {
+            value: 50,
+            min: 5,
+            max: 200,
+            step: 1,
+            label: "Segment Dist",
+            desc: "Length of the move segment in mm"
+        }
+    },
+    editorial: {
+        hud: [
+            { label: "Flow Rate", value: "0 mm³/s" },
+            { label: "Actual Speed", value: "0 mm/s" },
+            { label: "Status", value: "Optimizing" }
+        ]
+    }
+});
+
+// Initialize Internal State
+state.flowRate = 0;
+state.maxPossibleSpeed = 0;
+state.actualReachedSpeed = 0;
+state.isFlowThrottled = false;
+state.isDistanceLimited = false;
+
+/**
+ * Logic: Calculate derived physics values and update HUD
+ */
+const updateCalculations = () => {
+    // 1. Calculate Volumetric Flow at Target Speed
+    // Q = V * W * H
+    state.flowRate = state.targetSpeed * state.lineWidth * state.layerHeight;
+    
+    // 2. Calculate Maximum Possible Speed based on Flow Limit
+    // V_max = Q_max / (W * H)
+    state.maxPossibleSpeed = state.hotendFlow / (state.lineWidth * state.layerHeight);
+    
+    // 3. Kinematic Reality Check
+    // Peak speed for a triangle profile (start/end at 0) over distance d: v = sqrt(a * d)
+    const kinematicLimit = Math.sqrt(state.accel * state.segmentDist);
+    state.actualReachedSpeed = Math.min(state.targetSpeed, kinematicLimit);
+    
+    // 4. Determine Status Flags
+    state.isFlowThrottled = state.flowRate > state.hotendFlow;
+    state.isDistanceLimited = state.actualReachedSpeed < state.targetSpeed;
+    
+    let status = "Optimal";
+    if (state.isFlowThrottled) status = "⚠️ Flow Throttled";
+    else if (state.isDistanceLimited) status = "ℹ️ Accel Limited";
+
+    // Update Editorial HUD
+    ui.setEditorial({
+        hud: [
+            { 
+                label: "Flow Rate", 
+                value: `${state.flowRate.toFixed(1)} mm³/s` 
+            },
+            { 
+                label: "Actual Speed", 
+                value: `${state.actualReachedSpeed.toFixed(0)} mm/s` 
+            },
+            { 
+                label: "Status", 
+                value: status 
+            }
+        ]
+    });
+};
+
+// Reactivity
+const keys = ['hotendFlow', 'layerHeight', 'lineWidth', 'targetSpeed', 'accel', 'segmentDist'];
+keys.forEach(key => state._subscribe(key, updateCalculations));
+
+// Explicit boot-up call
+updateCalculations();
+
+/**
+ * Visualization: Dual-Group Dashboard
+ * Compares Target vs Actual metrics for Motion and Extrusion
+ */
+WH.initPlot('viz', ({ width, state }) => {
+    // Extract state to plain objects for Plot
+    const chartData = [
+        { 
+            category: "Target (Requested)", 
+            value: state.targetSpeed, 
+            group: "Motion (mm/s)", 
+            status: "reference" 
+        },
+        { 
+            category: "Actual (Reached)", 
+            value: state.actualReachedSpeed, 
+            group: "Motion (mm/s)", 
+            status: state.isDistanceLimited ? "limited" : "ok" 
+        },
+        { 
+            category: "Flow Capacity", 
+            value: state.hotendFlow, 
+            group: "Extrusion (mm³/s)", 
+            status: "reference" 
+        },
+        { 
+            category: "Calc. Flow", 
+            value: state.flowRate, 
+            group: "Extrusion (mm³/s)", 
+            status: state.isFlowThrottled ? "warning" : "ok" 
+        }
+    ];
+
+    return {
+        width,
+        style: { background: "transparent" },
+        marginLeft: 110,
+        x: { 
+            grid: true, 
+            label: "Value (Units vary by group)",
+            nice: true
+        },
+        y: { 
+            label: null,
+            domain: chartData.map(d => d.category) 
+        },
+        fy: { 
+            label: null,
+            padding: 0.1
+        },
+        color: {
+            domain: ["reference", "ok", "limited", "warning"],
+            range: [
+                WH.getColor('--surface-container-highest'), // reference
+                WH.getColor('--primary'),                 // ok
+                WH.getColor('--chart-3'),                 // limited (yellow/orange)
+                WH.getColor('--chart-1')                  // warning (red)
+            ]
+        },
+        marks: [
+            // Background track for visual context
+            Plot.barX(chartData, {
+                x: d => d.group.includes("Motion") ? 600 : 60,
+                y: "category",
+                fy: "group",
+                fill: WH.getColor('--surface-container-low'),
+                inset: 2
+            }),
+            // Actual data bars
+            Plot.barX(chartData, {
+                x: "value",
+                y: "category",
+                fy: "group",
+                fill: "status",
+                tip: true,
+                inset: 2
+            }),
+            // Value labels
+            Plot.text(chartData, {
+                x: "value",
+                y: "category",
+                fy: "group",
+                text: d => d.value.toFixed(1),
+                dx: 5,
+                textAnchor: "start",
+                fill: WH.getColor('--on-surface-default'),
+                fontSize: 10
+            }),
+            // Vertical rule for limits
+            Plot.ruleX([state.hotendFlow], {
+                filter: () => true, // Only show on extrusion group logic
+                stroke: WH.getColor('--stroke-emphasis'),
+                strokeDasharray: "4,4",
+                strokeWidth: 2
+            })
+        ]
+    };
+});
+</script>
