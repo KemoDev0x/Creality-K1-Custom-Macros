@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Elite Adaptive PA Matrix Generator</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+			rel="stylesheet" />
+		<style>
+			body {
+				font-family: "Inter", sans-serif;
+				background-color: #0f172a; /* Tailwind slate-900 */
+				color: #f8fafc; /* Tailwind slate-50 */
+			}
+			.code-font {
+				font-family: "JetBrains Mono", monospace;
+			}
+			/* Custom scrollbar for output area */
+			textarea::-webkit-scrollbar {
+				width: 8px;
+			}
+			textarea::-webkit-scrollbar-track {
+				background: #1e293b;
+			}
+			textarea::-webkit-scrollbar-thumb {
+				background: #475569;
+				border-radius: 4px;
+			}
+		</style>
+	</head>
+	<body
+		class="min-h-screen p-4 md:p-8 selection:bg-emerald-500 selection:text-white">
+		<div class="max-w-6xl mx-auto space-y-8">
+			<!-- Header -->
+			<header class="border-b border-slate-700 pb-6">
+				<div class="flex items-center gap-3 mb-2">
+					<svg
+						class="w-8 h-8 text-emerald-400"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
+					</svg>
+					<h1 class="text-3xl font-bold tracking-tight text-white">
+						Adaptive PA Matrix Generator
+					</h1>
+				</div>
+				<p class="text-slate-400">
+					Automated volumetric flow calculation and syntax generation
+					for OrcaSlicer Klipper environments.
+				</p>
+			</header>
+
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+				<!-- Left Column: Inputs & Grid -->
+				<div class="lg:col-span-2 space-y-6">
+					<!-- Global Settings -->
+					<div
+						class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+						<h2
+							class="text-xl font-semibold mb-4 text-emerald-400 flex items-center gap-2">
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+							</svg>
+							1. Extrusion Kinematics
+						</h2>
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label
+									class="block text-sm font-medium text-slate-400 mb-1"
+									>Line Width (mm)</label
+								>
+								<input
+									type="number"
+									id="lineWidth"
+									value="0.45"
+									step="0.01"
+									class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+							</div>
+							<div>
+								<label
+									class="block text-sm font-medium text-slate-400 mb-1"
+									>Layer Height (mm)</label
+								>
+								<input
+									type="number"
+									id="layerHeight"
+									value="0.20"
+									step="0.01"
+									class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors" />
+							</div>
+						</div>
+						<p class="text-xs text-slate-500 mt-3">
+							These values automatically calculate the Volumetric
+							Flow for each speed tier.
+						</p>
+					</div>
+
+					<!-- Matrix Inputs -->
+					<div
+						class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg overflow-hidden flex flex-col">
+						<div
+							class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4">
+							<h2
+								class="text-xl font-semibold text-emerald-400 flex items-center gap-2 shrink-0">
+								<svg
+									class="w-5 h-5"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+								</svg>
+								2. PA Test Results
+							</h2>
+
+							<!-- Matrix Controls -->
+							<div class="flex flex-wrap gap-2 w-full sm:w-auto">
+								<!-- Add Accel -->
+								<div
+									class="flex bg-slate-900 border border-slate-600 rounded-lg overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-colors">
+									<input
+										type="number"
+										id="newAccelInput"
+										placeholder="New Accel (e.g. 7500)"
+										class="w-36 bg-transparent px-3 py-1.5 text-sm text-white focus:outline-none placeholder-slate-500" />
+									<button
+										id="addAccelBtn"
+										class="bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 text-sm font-medium transition-colors border-l border-slate-600">
+										+ Col
+									</button>
+								</div>
+								<!-- Add Speed -->
+								<div
+									class="flex bg-slate-900 border border-slate-600 rounded-lg overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-colors">
+									<input
+										type="number"
+										id="newSpeedInput"
+										placeholder="New Speed (e.g. 200)"
+										class="w-36 bg-transparent px-3 py-1.5 text-sm text-white focus:outline-none placeholder-slate-500" />
+									<button
+										id="addSpeedBtn"
+										class="bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 text-sm font-medium transition-colors border-l border-slate-600">
+										+ Row
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<div
+							class="overflow-x-auto rounded-lg border border-slate-700 bg-slate-900/50">
+							<table
+								class="w-full text-left border-collapse min-w-max">
+								<thead>
+									<tr
+										id="matrixHeader"
+										class="border-b border-slate-600 text-sm text-slate-400 bg-slate-800/80">
+										<th
+											class="py-3 px-4 font-medium w-28 sticky left-0 bg-slate-800/80 z-10 border-r border-slate-600">
+											Speed
+										</th>
+										<th
+											class="py-3 px-4 font-medium w-28 border-r border-slate-600">
+											Vol Flow
+										</th>
+										<!-- Acceleration headers injected here -->
+									</tr>
+								</thead>
+								<tbody id="matrixBody">
+									<!-- Rows generated by JS -->
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right Column: Output -->
+				<div class="space-y-6">
+					<div
+						class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex flex-col h-full">
+						<h2
+							class="text-xl font-semibold mb-2 text-emerald-400 flex items-center gap-2">
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+							</svg>
+							3. OrcaSlicer Output
+						</h2>
+						<p class="text-sm text-slate-400 mb-4">
+							Copy this syntax directly into your Filament profile
+							under
+							<strong
+								>"Adaptive pressure advance
+								measurements"</strong
+							>.
+						</p>
+
+						<div class="relative flex-grow">
+							<textarea
+								id="outputArea"
+								readonly
+								class="w-full h-full min-h-[300px] bg-slate-900 border border-slate-600 rounded-lg p-4 code-font text-sm text-emerald-300 focus:outline-none resize-none shadow-inner"></textarea>
+						</div>
+
+						<button
+							id="copyBtn"
+							class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/50">
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+							</svg>
+							Copy to Clipboard
+						</button>
+						<div
+							id="copyFeedback"
+							class="text-center text-emerald-400 text-sm mt-2 opacity-0 transition-opacity">
+							Copied!
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			let speeds = [50, 100, 150, 250];
+			let accelerations = [3000, 5000, 10000];
+
+			// We no longer use a static placeholder object since users can add random numbers.
+			// We will generate default values dynamically if needed, or just leave them empty.
+			// For the initial load, we'll populate it to look nice.
+			let paData = {}; // Format: { "3000": { "50": 0.060, "100": 0.055... } }
+
+			const matrixHeader = document.getElementById("matrixHeader");
+			const matrixBody = document.getElementById("matrixBody");
+			const lineWidthInput = document.getElementById("lineWidth");
+			const layerHeightInput = document.getElementById("layerHeight");
+			const outputArea = document.getElementById("outputArea");
+			const copyBtn = document.getElementById("copyBtn");
+			const copyFeedback = document.getElementById("copyFeedback");
+
+			const newAccelInput = document.getElementById("newAccelInput");
+			const addAccelBtn = document.getElementById("addAccelBtn");
+			const newSpeedInput = document.getElementById("newSpeedInput");
+			const addSpeedBtn = document.getElementById("addSpeedBtn");
+
+			function generateInitialData() {
+				accelerations.forEach((accel, aIdx) => {
+					paData[accel] = {};
+					speeds.forEach((speed, sIdx) => {
+						// Just some dummy math to make the initial table look populated like the original
+						let base = 0.06;
+						let val = base - aIdx * 0.005 - sIdx * 0.005;
+						paData[accel][speed] = Math.max(0.01, val).toFixed(3);
+					});
+				});
+			}
+
+			function renderTable() {
+				// Sort arrays to keep grid logical
+				speeds.sort((a, b) => a - b);
+				accelerations.sort((a, b) => a - b);
+
+				// 1. Render Headers
+				// Reset to just Speed and Vol Flow (keeping the sticky left column setup)
+				matrixHeader.innerHTML = `
+                <th class="py-3 px-4 font-medium w-28 sticky left-0 bg-slate-800 z-10 border-r border-slate-600 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Speed</th>
+                <th class="py-3 px-4 font-medium w-28 border-r border-slate-600">Vol Flow</th>
+            `;
+
+				accelerations.forEach((accel) => {
+					const th = document.createElement("th");
+					th.className =
+						"py-3 px-4 font-medium border-r border-slate-600 text-center min-w-[120px]";
+					th.innerHTML = `
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-emerald-300">Accel: ${accel.toLocaleString()}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-normal text-slate-500">Enter PA</span>
+                            <button onclick="removeAccel(${accel})" class="text-slate-500 hover:text-red-400 transition-colors" title="Remove Acceleration">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+					matrixHeader.appendChild(th);
+				});
+
+				// 2. Render Body
+				matrixBody.innerHTML = "";
+
+				const lw = parseFloat(lineWidthInput.value) || 0;
+				const lh = parseFloat(layerHeightInput.value) || 0;
+
+				speeds.forEach((speed) => {
+					const tr = document.createElement("tr");
+					tr.className =
+						"border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors group";
+
+					const flow = (speed * lw * lh).toFixed(2);
+
+					// Speed Col (Sticky)
+					tr.innerHTML += `
+                    <td class="py-3 px-4 font-medium text-white sticky left-0 bg-slate-800 group-hover:bg-slate-750 z-10 border-r border-slate-600 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>${speed} mm/s</span>
+                            <button onclick="removeSpeed(${speed})" class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" title="Remove Speed">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+					// Flow Col
+					tr.innerHTML += `<td class="py-3 px-4 text-slate-400 code-font text-sm border-r border-slate-600" id="flow-${speed}">${flow}</td>`;
+
+					// Accel Inputs
+					accelerations.forEach((accel) => {
+						// Ensure data structure exists
+						if (!paData[accel]) paData[accel] = {};
+						const val = paData[accel][speed] || "";
+
+						tr.innerHTML += `
+                        <td class="py-3 px-4 border-r border-slate-700 text-center">
+                            <input type="number" step="0.001" min="0" 
+                                class="pa-input w-full max-w-[90px] bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-center text-emerald-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors code-font text-sm" 
+                                data-speed="${speed}" data-accel="${accel}" value="${val}" placeholder="0.000">
+                        </td>
+                    `;
+					});
+
+					matrixBody.appendChild(tr);
+				});
+
+				// Re-attach listeners to new inputs
+				document.querySelectorAll(".pa-input").forEach((input) => {
+					input.addEventListener("input", (e) => {
+						const s = e.target.getAttribute("data-speed");
+						const a = e.target.getAttribute("data-accel");
+						paData[a][s] = e.target.value; // Store state
+						generateOutput();
+					});
+				});
+
+				generateOutput();
+			}
+
+			function addAccel() {
+				const val = parseInt(newAccelInput.value);
+				if (val && !accelerations.includes(val)) {
+					accelerations.push(val);
+					paData[val] = {}; // initialize empty column data
+					renderTable();
+					newAccelInput.value = "";
+				}
+			}
+
+			function addSpeed() {
+				const val = parseInt(newSpeedInput.value);
+				if (val && !speeds.includes(val)) {
+					speeds.push(val);
+					renderTable();
+					newSpeedInput.value = "";
+				}
+			}
+
+			// Expose to window for inline onclick handlers
+			window.removeAccel = function (accelToRemove) {
+				accelerations = accelerations.filter(
+					(a) => a !== accelToRemove,
+				);
+				delete paData[accelToRemove];
+				renderTable();
+			};
+
+			window.removeSpeed = function (speedToRemove) {
+				speeds = speeds.filter((s) => s !== speedToRemove);
+				// Clean up stored data
+				for (let a in paData) {
+					delete paData[a][speedToRemove];
+				}
+				renderTable();
+			};
+
+			function updateFlows() {
+				const lw = parseFloat(lineWidthInput.value) || 0;
+				const lh = parseFloat(layerHeightInput.value) || 0;
+
+				speeds.forEach((speed) => {
+					const flowEl = document.getElementById(`flow-${speed}`);
+					if (flowEl) {
+						flowEl.innerText = (speed * lw * lh).toFixed(2);
+					}
+				});
+			}
+
+			function generateOutput() {
+				updateFlows();
+				const lw = parseFloat(lineWidthInput.value) || 0;
+				const lh = parseFloat(layerHeightInput.value) || 0;
+
+				let outputText = "";
+				let dataPoints = [];
+
+				// Gather all inputs from the state (paData) to maintain truth
+				accelerations.forEach((accel) => {
+					speeds.forEach((speed) => {
+						const pa = parseFloat(paData[accel][speed]);
+						if (!isNaN(pa) && pa > 0) {
+							const flow = (speed * lw * lh).toFixed(2);
+							dataPoints.push({
+								pa: pa.toFixed(3),
+								flow: flow,
+								accel: accel,
+							});
+						}
+					});
+				});
+
+				// Sort by Acceleration, then Flow
+				dataPoints.sort((a, b) => {
+					if (a.accel !== b.accel) return a.accel - b.accel;
+					return parseFloat(a.flow) - parseFloat(b.flow);
+				});
+
+				if (dataPoints.length === 0) {
+					outputArea.value =
+						"// Enter PA values in the matrix to generate syntax.";
+					return;
+				}
+
+				// Format string
+				dataPoints.forEach((pt) => {
+					// Add padding for neat columns
+					const paPad = pt.pa.padEnd(5, "0");
+					const flowPad = pt.flow.padStart(5, " ");
+					outputText += `${paPad}, ${flowPad}, ${pt.accel}\n`;
+				});
+
+				outputArea.value = outputText;
+			}
+
+			function copyText() {
+				outputArea.select();
+				outputArea.setSelectionRange(0, 99999); // For mobile devices
+
+				try {
+					navigator.clipboard
+						.writeText(outputArea.value)
+						.then(showFeedback);
+				} catch (err) {
+					document.execCommand("copy");
+					showFeedback();
+				}
+			}
+
+			function showFeedback() {
+				copyFeedback.classList.remove("opacity-0");
+				setTimeout(() => {
+					copyFeedback.classList.add("opacity-0");
+				}, 2000);
+			}
+
+			// Listeners
+			lineWidthInput.addEventListener("input", renderTable);
+			layerHeightInput.addEventListener("input", renderTable);
+			copyBtn.addEventListener("click", copyText);
+
+			addAccelBtn.addEventListener("click", addAccel);
+			newAccelInput.addEventListener("keypress", (e) => {
+				if (e.key === "Enter") addAccel();
+			});
+
+			addSpeedBtn.addEventListener("click", addSpeed);
+			newSpeedInput.addEventListener("keypress", (e) => {
+				if (e.key === "Enter") addSpeed();
+			});
+
+			// Init
+			generateInitialData();
+			renderTable();
+		</script>
+	</body>
+</html>
