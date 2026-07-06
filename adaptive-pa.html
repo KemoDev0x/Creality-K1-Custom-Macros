@@ -444,6 +444,7 @@
 						const pa = parseFloat(paData[accel][speed]);
 						if (!isNaN(pa) && pa > 0) {
 							const flow = (speed * lw * lh).toFixed(2);
+							// Store the pure number, format it to 3 decimals so it's clean
 							dataPoints.push({
 								pa: pa.toFixed(3),
 								flow: flow,
@@ -467,8 +468,8 @@
 
 				// Format string
 				dataPoints.forEach((pt) => {
-					// Add padding for neat columns
-					const paPad = pt.pa.padEnd(5, "0");
+					// BUG FIX: Removed padEnd(5, '0'). Using space padding for neat columns without altering value.
+					const paPad = pt.pa.padEnd(5, " ");
 					const flowPad = pt.flow.padStart(5, " ");
 					outputText += `${paPad}, ${flowPad}, ${pt.accel}\n`;
 				});
